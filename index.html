@@ -10,15 +10,15 @@
         #blocklyDiv { width: 50%; height: 100%; }
         #sidebars { width: 50%; display: flex; flex-direction: column; border-left: 2px solid #444; }
         #codeOutput { height: 40%; background: #000; color: #0f0; padding: 10px; margin: 0; overflow: auto; font-size: 12px; font-family: monospace; }
-        #previewLabel { background: #444; padding: 5px 10px; font-size: 12px; text-transform: uppercase; }
         #livePreview { flex: 1; background: white; border: none; }
+        #previewLabel { background: #444; padding: 5px 10px; font-size: 12px; text-transform: uppercase; }
         button { background: #4a90e2; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; }
     </style>
 </head>
 <body>
     <div class="toolbar">
         <strong>WebBlock Engine</strong>
-        <button onclick="copyCode()">Copy Full HTML5</button>
+        <button onclick="copyCode()">Copy HTML5</button>
     </div>
     <div id="main">
         <div id="blocklyDiv"></div>
@@ -42,30 +42,42 @@
         </category>
         <category name="JS Logic" colour="60">
             <block type="js_alert"></block>
-            <block type="js_console"></block>
         </category>
     </xml>
 
     <script src="blocks.js"></script>
     <script src="generator.js"></script>
+
     <script>
-        const workspace = Blockly.inject('blocklyDiv', { toolbox: document.getElementById('toolbox'), theme: 'dark' });
+        // FIX: Modern Blockly uses Theme objects. If "dark" isn't loaded, we use default.
+        const workspace = Blockly.inject('blocklyDiv', { 
+            toolbox: document.getElementById('toolbox'),
+            move:{ scrollbars: true, drag: true, wheel: true }
+        });
 
         function updateAll() {
-            const code = htmlGenerator.workspaceToCode(workspace);
-            document.getElementById('codeOutput').textContent = code;
-            
-            // Update Live Preview
-            const previewFrame = document.getElementById('livePreview');
-            const previewDoc = previewFrame.contentDocument || previewFrame.contentWindow.document;
-            previewDoc.open();
-            previewDoc.write(code);
-            previewDoc.close();
+            // FIX: Ensure htmlGenerator exists before calling
+            if (typeof htmlGenerator !== 'undefined') {
+                try {
+                    const code = htmlGenerator.workspaceToCode(workspace);
+                    document.getElementById('codeOutput').textContent = code;
+                    
+                    const previewFrame = document.getElementById('livePreview');
+                    const previewDoc = previewFrame.contentDocument || previewFrame.contentWindow.document;
+                    previewDoc.open();
+                    previewDoc.write(code);
+                    previewDoc.close();
+                } catch (e) {
+                    console.error("Generation Error:", e);
+                }
+            }
         }
+
         workspace.addChangeListener(updateAll);
 
         function copyCode() {
-            navigator.clipboard.writeText(document.getElementById('codeOutput').textContent);
+            const code = document.getElementById('codeOutput').textContent;
+            navigator.clipboard.writeText(code);
             alert("Code copied!");
         }
     </script>
