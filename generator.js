@@ -2,25 +2,35 @@ const htmlGenerator = new Blockly.Generator('HTML');
 
 htmlGenerator['html_main'] = function(block) {
   const content = htmlGenerator.statementToCode(block, 'CONTENT');
-  return `<!DOCTYPE html>\n<html>\n<body>\n${content}</body>\n</html>`;
+  return `<!DOCTYPE html>\n<html>\n<head><meta charset="utf-8"></head>\n<body>\n${content}</body>\n</html>`;
+};
+
+htmlGenerator['html_text'] = function(block) {
+  const text = block.getFieldValue('TEXT');
+  const styles = htmlGenerator.statementToCode(block, 'STYLE').trim();
+  return `<p style="${styles}">${text}</p>\n`;
 };
 
 htmlGenerator['html_button'] = function(block) {
   const text = block.getFieldValue('TEXT');
-  const attrs = htmlGenerator.statementToCode(block, 'ATTRS').trim();
-  return `<button ${attrs}>${text}</button>\n`;
+  const js = htmlGenerator.statementToCode(block, 'JS').trim();
+  return `<button onclick="${js}">${text}</button>\n`;
 };
 
-htmlGenerator['html_text'] = function(block) {
-  return `<p>${block.getFieldValue('TEXT')}</p>\n`;
+// CSS Generators
+htmlGenerator['css_color'] = function(block) {
+  return `color: ${block.getFieldValue('COL')}; `;
 };
 
-htmlGenerator['css_bg_color'] = function(block) {
-  const color = block.getFieldValue('COLOUR');
-  return `style="background-color: ${color};" `;
+htmlGenerator['css_font_size'] = function(block) {
+  return `font-size: ${block.getFieldValue('SIZE')}; `;
 };
 
+// JS Generators
 htmlGenerator['js_alert'] = function(block) {
-  const msg = block.getFieldValue('MSG');
-  return `onclick="alert('${msg}')" `;
+  return `alert('${block.getFieldValue('MSG')}'); `;
+};
+
+htmlGenerator['js_console'] = function(block) {
+  return `console.log('${block.getFieldValue('MSG')}'); `;
 };
