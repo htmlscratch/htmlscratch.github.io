@@ -1,62 +1,72 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>WebBlock Engine</title>
+    <title>WebBlock Engine v2</title>
     <script src="https://unpkg.com/blockly/blockly.min.js"></script>
     <style>
         body { margin: 0; font-family: sans-serif; background: #1a1a1a; color: white; display: flex; flex-direction: column; height: 100vh; }
         .toolbar { height: 50px; background: #333; display: flex; align-items: center; padding: 0 20px; gap: 10px; border-bottom: 2px solid #444; }
-        #main { display: flex; flex: 1; }
-        #blocklyDiv { width: 60%; height: 100%; }
-        #codeOutput { width: 40%; background: #000; color: #00ff00; padding: 15px; overflow-y: auto; font-family: 'Courier New', monospace; border-left: 2px solid #444; }
-        button { background: #4a90e2; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; }
-        button:hover { background: #357abd; }
+        #main { display: flex; flex: 1; overflow: hidden; }
+        #blocklyDiv { width: 50%; height: 100%; }
+        #sidebars { width: 50%; display: flex; flex-direction: column; border-left: 2px solid #444; }
+        #codeOutput { height: 40%; background: #000; color: #0f0; padding: 10px; margin: 0; overflow: auto; font-size: 12px; font-family: monospace; }
+        #previewLabel { background: #444; padding: 5px 10px; font-size: 12px; text-transform: uppercase; }
+        #livePreview { flex: 1; background: white; border: none; }
+        button { background: #4a90e2; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; }
     </style>
 </head>
 <body>
     <div class="toolbar">
         <strong>WebBlock Engine</strong>
-        <button onclick="copyCode()">Copy HTML5 Code</button>
+        <button onclick="copyCode()">Copy Full HTML5</button>
     </div>
     <div id="main">
         <div id="blocklyDiv"></div>
-        <pre id="codeOutput">Drag blocks to generate code...</pre>
+        <div id="sidebars">
+            <div id="previewLabel">Code Output</div>
+            <pre id="codeOutput"></pre>
+            <div id="previewLabel">Live Preview</div>
+            <iframe id="livePreview"></iframe>
+        </div>
     </div>
 
     <xml id="toolbox" style="display: none">
-        <category name="HTML (Structure)" colour="160">
+        <category name="HTML" colour="160">
             <block type="html_main"></block>
-            <block type="html_button"></block>
             <block type="html_text"></block>
+            <block type="html_button"></block>
         </category>
-        <category name="CSS (Design)" colour="260">
-            <block type="css_style"></block>
-            <block type="css_bg_color"></block>
+        <category name="CSS" colour="260">
+            <block type="css_color"></block>
+            <block type="css_font_size"></block>
         </category>
-        <category name="JS (Logic)" colour="60">
+        <category name="JS Logic" colour="60">
             <block type="js_alert"></block>
-            <block type="js_on_click"></block>
+            <block type="js_console"></block>
         </category>
     </xml>
 
     <script src="blocks.js"></script>
     <script src="generator.js"></script>
     <script>
-        const workspace = Blockly.inject('blocklyDiv', {
-            toolbox: document.getElementById('toolbox'),
-            theme: 'dark'
-        });
+        const workspace = Blockly.inject('blocklyDiv', { toolbox: document.getElementById('toolbox'), theme: 'dark' });
 
-        function updateCode() {
+        function updateAll() {
             const code = htmlGenerator.workspaceToCode(workspace);
-            document.getElementById('codeOutput').textContent = code || "";
+            document.getElementById('codeOutput').textContent = code;
+            
+            // Update Live Preview
+            const previewFrame = document.getElementById('livePreview');
+            const previewDoc = previewFrame.contentDocument || previewFrame.contentWindow.document;
+            previewDoc.open();
+            previewDoc.write(code);
+            previewDoc.close();
         }
-        workspace.addChangeListener(updateCode);
+        workspace.addChangeListener(updateAll);
 
         function copyCode() {
-            const code = htmlGenerator.workspaceToCode(workspace);
-            navigator.clipboard.writeText(code);
-            alert("Code copied to clipboard!");
+            navigator.clipboard.writeText(document.getElementById('codeOutput').textContent);
+            alert("Code copied!");
         }
     </script>
 </body>
