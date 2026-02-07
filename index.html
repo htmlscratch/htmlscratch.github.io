@@ -1,94 +1,58 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>HTML Block Engine</title>
+    <title>WebBlock Engine</title>
     <script src="https://unpkg.com/blockly/blockly.min.js"></script>
-    <script src="https://unpkg.com/blockly/javascript_compressed.js"></script>
-
     <style>
-        body { font-family: sans-serif; background: #1e1e1e; color: white; margin: 0; overflow: hidden; }
-        .header { height: 50px; display: flex; align-items: center; padding: 0 20px; background: #333; justify-content: space-between; }
-        #blocklyDiv { height: calc(100vh - 50px); width: 60%; float: left; }
-        #codeOutput { height: calc(100vh - 50px); width: 40%; float: right; background: #000; color: #0f0; padding: 20px; box-sizing: border-box; overflow-y: auto; white-space: pre-wrap; font-family: monospace; }
-        button { background: #4CAF50; color: white; border: none; padding: 10px 20px; cursor: pointer; border-radius: 4px; }
-        button:hover { background: #45a049; }
+        body { margin: 0; font-family: sans-serif; background: #1a1a1a; color: white; display: flex; flex-direction: column; height: 100vh; }
+        .toolbar { height: 50px; background: #333; display: flex; align-items: center; padding: 0 20px; gap: 10px; border-bottom: 2px solid #444; }
+        #main { display: flex; flex: 1; }
+        #blocklyDiv { width: 60%; height: 100%; }
+        #codeOutput { width: 40%; background: #000; color: #00ff00; padding: 15px; overflow-y: auto; font-family: 'Courier New', monospace; border-left: 2px solid #444; }
+        button { background: #4a90e2; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        button:hover { background: #357abd; }
     </style>
 </head>
 <body>
-
-    <div class="header">
-        <span><b>HTML Block Engine</b></span>
+    <div class="toolbar">
+        <strong>WebBlock Engine</strong>
         <button onclick="copyCode()">Copy HTML5 Code</button>
     </div>
-
-    <div id="blocklyDiv"></div>
-    <div id="codeOutput" id="generatedCode">Your HTML will appear here...</div>
+    <div id="main">
+        <div id="blocklyDiv"></div>
+        <pre id="codeOutput">Drag blocks to generate code...</pre>
+    </div>
 
     <xml id="toolbox" style="display: none">
-        <block type="html_page"></block>
-        <block type="html_title"></block>
-        <block type="html_heading"></block>
-        <block type="html_text"></block>
+        <category name="HTML (Structure)" colour="160">
+            <block type="html_main"></block>
+            <block type="html_button"></block>
+            <block type="html_text"></block>
+        </category>
+        <category name="CSS (Design)" colour="260">
+            <block type="css_style"></block>
+            <block type="css_bg_color"></block>
+        </category>
+        <category name="JS (Logic)" colour="60">
+            <block type="js_alert"></block>
+            <block type="js_on_click"></block>
+        </category>
     </xml>
 
+    <script src="blocks.js"></script>
+    <script src="generator.js"></script>
     <script>
-        // 1. Define how the blocks look and what code they generate
-        Blockly.Blocks['html_page'] = {
-            init: function() {
-                this.appendDummyInput().appendField("HTML5 Document");
-                this.appendStatementInput("content").setCheck(null);
-                this.setColour(230);
-            }
-        };
-
-        Blockly.Blocks['html_heading'] = {
-            init: function() {
-                this.appendDummyInput().appendField("Heading").appendField(new Blockly.FieldTextInput("Hello World"), "TEXT");
-                this.setPreviousStatement(true, null);
-                this.setNextStatement(true, null);
-                this.setColour(160);
-            }
-        };
-
-        Blockly.Blocks['html_text'] = {
-            init: function() {
-                this.appendDummyInput().appendField("Paragraph").appendField(new Blockly.FieldTextInput("Type here..."), "TEXT");
-                this.setPreviousStatement(true, null);
-                this.setNextStatement(true, null);
-                this.setColour(160);
-            }
-        };
-
-        // 2. Define the Generator (Turning blocks into text)
-        const htmlGenerator = new Blockly.Generator('HTML');
-        
-        htmlGenerator['html_page'] = function(block) {
-            const statements = htmlGenerator.statementToCode(block, 'content');
-            return `<!DOCTYPE html>\n<html>\n<body>\n${statements}</body>\n</html>`;
-        };
-
-        htmlGenerator['html_heading'] = function(block) {
-            return `  <h1>${block.getFieldValue('TEXT')}</h1>\n`;
-        };
-
-        htmlGenerator['html_text'] = function(block) {
-            return `  <p>${block.getFieldValue('TEXT')}</p>\n`;
-        };
-
-        // 3. Inject Blockly into the Div
         const workspace = Blockly.inject('blocklyDiv', {
             toolbox: document.getElementById('toolbox'),
-            scrollbars: true
+            theme: 'dark'
         });
 
-        // 4. Update the code window in real-time
         function updateCode() {
             const code = htmlGenerator.workspaceToCode(workspace);
-            document.getElementById('codeOutput').innerText = code || "Drag blocks to start...";
+            document.getElementById('codeOutput').textContent = code || "";
         }
         workspace.addChangeListener(updateCode);
 
-        // 5. Copy function
         function copyCode() {
             const code = htmlGenerator.workspaceToCode(workspace);
             navigator.clipboard.writeText(code);
