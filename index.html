@@ -2,89 +2,419 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>WebBlock Engine</title>
-    <script src="https://unpkg.com/blockly/blockly.min.js"></script>
-    <script src="https://unpkg.com/@blockly/field-colour"></script>
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTML5 Blueprint Engine</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #1a1a1a; color: white; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
-        .toolbar { height: 60px; background: #2d2d2d; display: flex; align-items: center; padding: 0 20px; gap: 20px; border-bottom: 2px solid #444; box-shadow: 0 2px 10px rgba(0,0,0,0.5); }
-        #main { display: flex; flex: 1; }
-        #blocklyDiv { width: 50%; height: 100%; }
-        #sidebars { width: 50%; display: flex; flex-direction: column; border-left: 2px solid #444; background: #111; }
-        .label { background: #333; padding: 8px 15px; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #aaa; border-bottom: 1px solid #444; }
-        #codeOutput { height: 35%; background: #000; color: #00ff41; padding: 15px; margin: 0; overflow: auto; font-family: 'Consolas', monospace; font-size: 13px; }
-        #livePreview { flex: 1; background: white; border: none; width: 100%; }
-        button { background: #4a90e2; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; transition: 0.2s; }
-        button:hover { background: #357abd; transform: translateY(-1px); }
+        :root {
+            --bg-color: #1a1a1a;
+            --grid-color: #2a2a2a;
+            --node-bg: #2d2d2d;
+            --node-header: #3d3d3d;
+            --text-color: #e0e0e0;
+            --accent-color: #4a90e2;
+            --html-accent: #e44d26;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            overflow: hidden;
+            font-family: 'Inter', system-ui, sans-serif;
+            display: flex;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* Split Screen Layout */
+        #workspace {
+            flex: 1;
+            position: relative;
+            border-right: 2px solid #444;
+            overflow: hidden;
+            background-image: 
+                linear-gradient(var(--grid-color) 1px, transparent 1px),
+                linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+            background-size: 25px 25px;
+        }
+
+        #output-window {
+            width: 40%;
+            background: #fff;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #preview-header {
+            background: #f0f0f0;
+            color: #333;
+            padding: 10px;
+            font-weight: bold;
+            font-size: 0.8rem;
+            border-bottom: 1px solid #ccc;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        #preview-frame {
+            flex: 1;
+            border: none;
+            background: white;
+        }
+
+        /* Node Styling */
+        .node {
+            position: absolute;
+            width: 200px;
+            background: var(--node-bg);
+            border: 1px solid #444;
+            border-radius: 8px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            user-select: none;
+            z-index: 10;
+        }
+
+        .node-header {
+            padding: 10px;
+            background: var(--node-header);
+            border-bottom: 1px solid #444;
+            border-radius: 8px 8px 0 0;
+            font-weight: bold;
+            font-size: 0.8rem;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .node-content { padding: 12px; }
+
+        .port-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 8px 0;
+            font-size: 0.75rem;
+        }
+
+        .port {
+            width: 14px;
+            height: 14px;
+            background: #666;
+            border: 2px solid #222;
+            border-radius: 4px;
+            cursor: crosshair;
+        }
+
+        .port:hover { background: var(--accent-color); }
+        .port.input { margin-left: -20px; }
+        .port.output { margin-right: -20px; background: var(--html-accent); }
+
+        svg#connections {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        .connection-line {
+            fill: none;
+            stroke: var(--html-accent);
+            stroke-width: 3;
+            stroke-linecap: round;
+        }
+
+        .toolbar {
+            position: absolute;
+            top: 20px; left: 20px;
+            z-index: 100;
+            background: rgba(30, 30, 30, 0.9);
+            padding: 8px;
+            border-radius: 8px;
+            border: 1px solid #444;
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn {
+            background: #444;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            color: white;
+        }
+
+        .btn:hover { background: var(--accent-color); }
+
+        input, textarea {
+            background: #111;
+            color: #fff;
+            border: 1px solid #555;
+            width: 100%;
+            font-size: 0.7rem;
+            padding: 4px;
+            border-radius: 4px;
+            margin-top: 4px;
+        }
     </style>
 </head>
 <body>
 
-    <div class="toolbar">
-        <div style="font-size: 20px; font-weight: bold; color: #4a90e2;">WebBlock <span style="color:white">Studio</span></div>
-        <button onclick="copyCode()">Copy HTML5 Code</button>
-    </div>
-
-    <div id="main">
-        <div id="blocklyDiv"></div>
-        <div id="sidebars">
-            <div class="label">Source Code</div>
-            <pre id="codeOutput"></pre>
-            <div class="label">Live Preview</div>
-            <iframe id="livePreview"></iframe>
+    <div id="workspace">
+        <div class="toolbar">
+            <span class="font-bold text-orange-500 mr-2 flex items-center text-sm">HTML5 Builder</span>
+            <button class="btn" onclick="addNode('Page')">+ Page Root</button>
+            <button class="btn" onclick="addNode('Header')">+ Header</button>
+            <button class="btn" onclick="addNode('Text')">+ Paragraph</button>
+            <button class="btn" onclick="addNode('Button')">+ Button</button>
+            <button class="btn" onclick="addNode('Image')">+ Image</button>
         </div>
+        <svg id="connections"></svg>
     </div>
 
-    <xml id="toolbox" style="display: none">
-        <category name="HTML (Structure)" colour="160">
-            <block type="html_main"></block>
-            <block type="html_text"></block>
-            <block type="html_button"></block>
-        </category>
-        <category name="CSS (Design)" colour="260">
-            <block type="css_color"></block>
-            <block type="css_font_size"></block>
-        </category>
-        <category name="JS (Logic)" colour="60">
-            <block type="js_alert"></block>
-            <block type="js_console"></block>
-        </category>
-    </xml>
-
-    <script src="blocks.js"></script>
-    <script src="generator.js"></script>
+    <div id="output-window">
+        <div id="preview-header">
+            <span>Live Website Preview</span>
+            <span class="text-xs text-gray-500">Auto-updating...</span>
+        </div>
+        <iframe id="preview-frame"></iframe>
+    </div>
 
     <script>
-        // Initialize Workspace
-        const workspace = Blockly.inject('blocklyDiv', {
-            toolbox: document.getElementById('toolbox'),
-            grid: { spacing: 20, length: 3, colour: '#333', snap: true },
-            zoom: { controls: true, wheel: true, startScale: 1.0, maxScale: 3, minScale: 0.3, scaleSpeed: 1.2 },
-            trashcan: true
+        const workspace = document.getElementById('workspace');
+        const svg = document.getElementById('connections');
+        const preview = document.getElementById('preview-frame');
+        
+        let nodes = [];
+        let connections = [];
+        let isDragging = false;
+        let activeNode = null;
+        let dragOffset = { x: 0, y: 0 };
+        let pendingConnection = null;
+
+        function addNode(type, x = 50, y = 100) {
+            const id = 'node_' + Date.now();
+            const nodeEl = document.createElement('div');
+            nodeEl.className = 'node';
+            nodeEl.id = id;
+            nodeEl.style.left = x + 'px';
+            nodeEl.style.top = y + 'px';
+
+            let content = '';
+            if (type === 'Page') {
+                content = `
+                    <div class="port-row"><div class="port input" data-port-id="${id}_content"></div><span>Body Content</span></div>
+                    <div class="mt-2">
+                        <label class="text-[10px] text-gray-400">Page Title</label>
+                        <input type="text" value="My App" oninput="updatePreview()" id="${id}_title">
+                    </div>
+                `;
+            } else if (type === 'Header') {
+                content = `
+                    <div class="port-row"><span>Heading Out</span><div class="port output" data-port-id="${id}_out"></div></div>
+                    <input type="text" value="Hello World" oninput="updatePreview()" id="${id}_text">
+                    <select class="w-full bg-[#111] text-xs mt-1 border border-[#555]" id="${id}_size" onchange="updatePreview()">
+                        <option value="h1">H1 - Large</option>
+                        <option value="h2">H2 - Medium</option>
+                        <option value="h3">H3 - Small</option>
+                    </select>
+                `;
+            } else if (type === 'Text') {
+                content = `
+                    <div class="port-row"><span>Text Out</span><div class="port output" data-port-id="${id}_out"></div></div>
+                    <textarea oninput="updatePreview()" id="${id}_text" rows="2">Enter text here...</textarea>
+                `;
+            } else if (type === 'Button') {
+                content = `
+                    <div class="port-row"><span>Button Out</span><div class="port output" data-port-id="${id}_out"></div></div>
+                    <input type="text" value="Click Me" oninput="updatePreview()" id="${id}_label">
+                `;
+            } else if (type === 'Image') {
+                content = `
+                    <div class="port-row"><span>Image Out</span><div class="port output" data-port-id="${id}_out"></div></div>
+                    <input type="text" value="https://picsum.photos/200" oninput="updatePreview()" id="${id}_url">
+                `;
+            }
+
+            nodeEl.innerHTML = `
+                <div class="node-header">
+                    <span>${type}</span>
+                    <span class="cursor-pointer text-red-500 hover:text-white" onclick="deleteNode('${id}')">✕</span>
+                </div>
+                <div class="node-content">${content}</div>
+            `;
+
+            workspace.appendChild(nodeEl);
+            const nodeObj = { id, type, x, y, el: nodeEl };
+            nodes.push(nodeObj);
+
+            nodeEl.addEventListener('mousedown', (e) => {
+                if (e.target.closest('.port') || e.target.closest('input') || e.target.closest('textarea') || e.target.closest('select')) return;
+                isDragging = true;
+                activeNode = nodeObj;
+                dragOffset.x = e.clientX - nodeEl.offsetLeft;
+                dragOffset.y = e.clientY - nodeEl.offsetTop;
+            });
+
+            nodeEl.querySelectorAll('.port').forEach(port => {
+                port.addEventListener('mousedown', (e) => {
+                    e.stopPropagation();
+                    const rect = port.getBoundingClientRect();
+                    pendingConnection = {
+                        fromPort: port.dataset.portId,
+                        fromNode: id,
+                        isOutput: port.classList.contains('output'),
+                        startX: rect.left + rect.width / 2,
+                        startY: rect.top + rect.height / 2
+                    };
+                });
+            });
+            updatePreview();
+        }
+
+        function deleteNode(id) {
+            nodes = nodes.filter(n => n.id !== id);
+            connections = connections.filter(c => c.fromNode !== id && c.toNode !== id);
+            document.getElementById(id).remove();
+            drawConnections();
+            updatePreview();
+        }
+
+        window.addEventListener('mousemove', (e) => {
+            if (isDragging && activeNode) {
+                activeNode.x = e.clientX - dragOffset.x;
+                activeNode.y = e.clientY - dragOffset.y;
+                activeNode.el.style.left = activeNode.x + 'px';
+                activeNode.el.style.top = activeNode.y + 'px';
+                drawConnections();
+            }
+            if (pendingConnection) {
+                drawConnections();
+                const line = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                line.setAttribute("class", "connection-line opacity-50");
+                const d = calculateCurve(pendingConnection.startX, pendingConnection.startY, e.clientX, e.clientY);
+                line.setAttribute("d", d);
+                svg.appendChild(line);
+            }
         });
 
-        function updateAll() {
-            if (typeof htmlGenerator !== 'undefined') {
-                const code = htmlGenerator.workspaceToCode(workspace);
-                document.getElementById('codeOutput').textContent = code || "";
-                
-                // Update the Live Preview frame
-                const previewFrame = document.getElementById('livePreview');
-                const previewDoc = previewFrame.contentDocument || previewFrame.contentWindow.document;
-                previewDoc.open();
-                previewDoc.write(code);
-                previewDoc.close();
+        window.addEventListener('mouseup', (e) => {
+            if (pendingConnection) {
+                const target = document.elementFromPoint(e.clientX, e.clientY);
+                if (target && target.classList.contains('port')) {
+                    const toPort = target.dataset.portId;
+                    const toNode = toPort.split('_').slice(0, 2).join('_');
+                    if (pendingConnection.isOutput !== target.classList.contains('output')) {
+                        const outNode = pendingConnection.isOutput ? pendingConnection.fromNode : toNode;
+                        const outPort = pendingConnection.isOutput ? pendingConnection.fromPort : toPort;
+                        const inNode = pendingConnection.isOutput ? toNode : pendingConnection.fromNode;
+                        const inPort = pendingConnection.isOutput ? toPort : pendingConnection.fromPort;
+                        
+                        // Only one connection per input port
+                        connections = connections.filter(c => c.toPort !== inPort);
+                        connections.push({ fromNode: outNode, fromPort: outPort, toNode: inNode, toPort: inPort });
+                    }
+                }
             }
+            isDragging = false; activeNode = null; pendingConnection = null;
+            drawConnections();
+            updatePreview();
+        });
+
+        function calculateCurve(x1, y1, x2, y2) {
+            const cp1x = x1 + Math.abs(x2 - x1) * 0.5;
+            const cp2x = x2 - Math.abs(x2 - x1) * 0.5;
+            return `M ${x1} ${y1} C ${cp1x} ${y1} ${cp2x} ${y2} ${x2} ${y2}`;
         }
 
-        workspace.addChangeListener(updateAll);
-
-        function copyCode() {
-            const code = document.getElementById('codeOutput').textContent;
-            navigator.clipboard.writeText(code);
-            alert("Full website code copied to clipboard!");
+        function drawConnections() {
+            svg.innerHTML = '';
+            connections.forEach(conn => {
+                const p1El = document.querySelector(`[data-port-id="${conn.fromPort}"]`);
+                const p2El = document.querySelector(`[data-port-id="${conn.toPort}"]`);
+                if (p1El && p2El) {
+                    const r1 = p1El.getBoundingClientRect();
+                    const r2 = p2El.getBoundingClientRect();
+                    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                    path.setAttribute("class", "connection-line");
+                    path.setAttribute("d", calculateCurve(r1.left + 7, r1.top + 7, r2.left + 7, r2.top + 7));
+                    svg.appendChild(path);
+                }
+            });
         }
+
+        function updatePreview() {
+            const rootNode = nodes.find(n => n.type === 'Page');
+            if (!rootNode) {
+                preview.srcdoc = "<body style='background:#eee; display:flex; justify-content:center; align-items:center; height:100vh; font-family:sans-serif;'>Add a 'Page Root' node to start</body>";
+                return;
+            }
+
+            const pageTitle = document.getElementById(rootNode.id + '_title').value;
+            
+            function buildHTML(nodeId) {
+                const node = nodes.find(n => n.id === nodeId);
+                if (!node) return '';
+
+                let html = '';
+                if (node.type === 'Header') {
+                    const tag = document.getElementById(nodeId + '_size').value;
+                    const text = document.getElementById(nodeId + '_text').value;
+                    html = `<${tag}>${text}</${tag}>`;
+                } else if (node.type === 'Text') {
+                    const text = document.getElementById(nodeId + '_text').value;
+                    html = `<p>${text.replace(/\n/g, '<br>')}</p>`;
+                } else if (node.type === 'Button') {
+                    const label = document.getElementById(nodeId + '_label').value;
+                    html = `<button style="padding:10px 20px; border-radius:5px; border:1px solid #ccc; background:#f9f9f9; cursor:pointer;">${label}</button>`;
+                } else if (node.type === 'Image') {
+                    const url = document.getElementById(nodeId + '_url').value;
+                    html = `<img src="${url}" style="max-width:100%; border-radius:10px; margin-top:10px;">`;
+                }
+
+                // Find what else is connected to this output to keep nesting? 
+                // In this simple engine, we find all nodes connected to inputs
+                return html;
+            }
+
+            // Get all nodes connected to the Root Page
+            let bodyContent = '';
+            // We find all connections going INTO the root page content port
+            const rootConns = connections.filter(c => c.toPort === rootNode.id + '_content');
+            rootConns.forEach(c => {
+                bodyContent += buildHTML(c.fromNode);
+            });
+
+            // If the output of a node is connected to ANOTHER input? 
+            // For simplicity, we just look for all nodes whose outputs are connected to the Page.
+            // Let's improve the traversal to allow multiple elements:
+            const connectedToBody = connections
+                .filter(c => c.toPort === rootNode.id + '_content')
+                .map(c => buildHTML(c.fromNode))
+                .join('');
+
+            preview.srcdoc = `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>${pageTitle}</title>
+                    <style>
+                        body { font-family: sans-serif; padding: 40px; color: #333; line-height: 1.6; }
+                        h1 { color: #222; margin-top: 0; }
+                        button:hover { background: #eee !important; }
+                    </style>
+                </head>
+                <body>
+                    ${connectedToBody || '<h1>Welcome</h1><p>Connect blocks to the Page Root to add content!</p>'}
+                </body>
+                </html>
+            `;
+        }
+
+        window.onload = () => {
+            addNode('Page', 400, 100);
+            addNode('Header', 50, 50);
+            addNode('Text', 50, 250);
+            addNode('Button', 50, 450);
+        };
     </script>
 </body>
 </html>
