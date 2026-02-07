@@ -1,47 +1,54 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>WebBlock Engine v2</title>
+    <meta charset="UTF-8">
+    <title>WebBlock Engine</title>
     <script src="https://unpkg.com/blockly/blockly.min.js"></script>
+    <script src="https://unpkg.com/@blockly/field-colour"></script>
+
     <style>
-        body { margin: 0; font-family: sans-serif; background: #1a1a1a; color: white; display: flex; flex-direction: column; height: 100vh; }
-        .toolbar { height: 50px; background: #333; display: flex; align-items: center; padding: 0 20px; gap: 10px; border-bottom: 2px solid #444; }
-        #main { display: flex; flex: 1; overflow: hidden; }
+        body { margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #1a1a1a; color: white; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        .toolbar { height: 60px; background: #2d2d2d; display: flex; align-items: center; padding: 0 20px; gap: 20px; border-bottom: 2px solid #444; box-shadow: 0 2px 10px rgba(0,0,0,0.5); }
+        #main { display: flex; flex: 1; }
         #blocklyDiv { width: 50%; height: 100%; }
-        #sidebars { width: 50%; display: flex; flex-direction: column; border-left: 2px solid #444; }
-        #codeOutput { height: 40%; background: #000; color: #0f0; padding: 10px; margin: 0; overflow: auto; font-size: 12px; font-family: monospace; }
-        #livePreview { flex: 1; background: white; border: none; }
-        #previewLabel { background: #444; padding: 5px 10px; font-size: 12px; text-transform: uppercase; }
-        button { background: #4a90e2; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; }
+        #sidebars { width: 50%; display: flex; flex-direction: column; border-left: 2px solid #444; background: #111; }
+        .label { background: #333; padding: 8px 15px; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #aaa; border-bottom: 1px solid #444; }
+        #codeOutput { height: 35%; background: #000; color: #00ff41; padding: 15px; margin: 0; overflow: auto; font-family: 'Consolas', monospace; font-size: 13px; }
+        #livePreview { flex: 1; background: white; border: none; width: 100%; }
+        button { background: #4a90e2; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        button:hover { background: #357abd; transform: translateY(-1px); }
     </style>
 </head>
 <body>
+
     <div class="toolbar">
-        <strong>WebBlock Engine</strong>
-        <button onclick="copyCode()">Copy HTML5</button>
+        <div style="font-size: 20px; font-weight: bold; color: #4a90e2;">WebBlock <span style="color:white">Studio</span></div>
+        <button onclick="copyCode()">Copy HTML5 Code</button>
     </div>
+
     <div id="main">
         <div id="blocklyDiv"></div>
         <div id="sidebars">
-            <div id="previewLabel">Code Output</div>
+            <div class="label">Source Code</div>
             <pre id="codeOutput"></pre>
-            <div id="previewLabel">Live Preview</div>
+            <div class="label">Live Preview</div>
             <iframe id="livePreview"></iframe>
         </div>
     </div>
 
     <xml id="toolbox" style="display: none">
-        <category name="HTML" colour="160">
+        <category name="HTML (Structure)" colour="160">
             <block type="html_main"></block>
             <block type="html_text"></block>
             <block type="html_button"></block>
         </category>
-        <category name="CSS" colour="260">
+        <category name="CSS (Design)" colour="260">
             <block type="css_color"></block>
             <block type="css_font_size"></block>
         </category>
-        <category name="JS Logic" colour="60">
+        <category name="JS (Logic)" colour="60">
             <block type="js_alert"></block>
+            <block type="js_console"></block>
         </category>
     </xml>
 
@@ -49,27 +56,25 @@
     <script src="generator.js"></script>
 
     <script>
-        // FIX: Modern Blockly uses Theme objects. If "dark" isn't loaded, we use default.
-        const workspace = Blockly.inject('blocklyDiv', { 
+        // Initialize Workspace
+        const workspace = Blockly.inject('blocklyDiv', {
             toolbox: document.getElementById('toolbox'),
-            move:{ scrollbars: true, drag: true, wheel: true }
+            grid: { spacing: 20, length: 3, colour: '#333', snap: true },
+            zoom: { controls: true, wheel: true, startScale: 1.0, maxScale: 3, minScale: 0.3, scaleSpeed: 1.2 },
+            trashcan: true
         });
 
         function updateAll() {
-            // FIX: Ensure htmlGenerator exists before calling
             if (typeof htmlGenerator !== 'undefined') {
-                try {
-                    const code = htmlGenerator.workspaceToCode(workspace);
-                    document.getElementById('codeOutput').textContent = code;
-                    
-                    const previewFrame = document.getElementById('livePreview');
-                    const previewDoc = previewFrame.contentDocument || previewFrame.contentWindow.document;
-                    previewDoc.open();
-                    previewDoc.write(code);
-                    previewDoc.close();
-                } catch (e) {
-                    console.error("Generation Error:", e);
-                }
+                const code = htmlGenerator.workspaceToCode(workspace);
+                document.getElementById('codeOutput').textContent = code || "";
+                
+                // Update the Live Preview frame
+                const previewFrame = document.getElementById('livePreview');
+                const previewDoc = previewFrame.contentDocument || previewFrame.contentWindow.document;
+                previewDoc.open();
+                previewDoc.write(code);
+                previewDoc.close();
             }
         }
 
@@ -78,7 +83,7 @@
         function copyCode() {
             const code = document.getElementById('codeOutput').textContent;
             navigator.clipboard.writeText(code);
-            alert("Code copied!");
+            alert("Full website code copied to clipboard!");
         }
     </script>
 </body>
