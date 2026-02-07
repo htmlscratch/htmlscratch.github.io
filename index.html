@@ -24,6 +24,7 @@
             display: flex;
             height: 100vh;
             width: 100vw;
+            margin: 0;
         }
 
         /* Split Screen Layout */
@@ -54,6 +55,7 @@
             border-bottom: 1px solid #ccc;
             display: flex;
             justify-content: space-between;
+            align-items: center;
         }
 
         #preview-frame {
@@ -65,13 +67,18 @@
         /* Node Styling */
         .node {
             position: absolute;
-            width: 200px;
+            width: 220px;
             background: var(--node-bg);
             border: 1px solid #444;
             border-radius: 8px;
             box-shadow: 0 10px 25px rgba(0,0,0,0.5);
             user-select: none;
             z-index: 10;
+            transition: box-shadow 0.2s;
+        }
+
+        .node:hover {
+            box-shadow: 0 0 10px var(--accent-color);
         }
 
         .node-header {
@@ -83,6 +90,7 @@
             font-size: 0.8rem;
             display: flex;
             justify-content: space-between;
+            align-items: center;
         }
 
         .node-content { padding: 12px; }
@@ -93,6 +101,7 @@
             align-items: center;
             margin: 8px 0;
             font-size: 0.75rem;
+            position: relative;
         }
 
         .port {
@@ -102,6 +111,7 @@
             border: 2px solid #222;
             border-radius: 4px;
             cursor: crosshair;
+            z-index: 20;
         }
 
         .port:hover { background: var(--accent-color); }
@@ -127,32 +137,43 @@
             top: 20px; left: 20px;
             z-index: 100;
             background: rgba(30, 30, 30, 0.9);
-            padding: 8px;
-            border-radius: 8px;
+            padding: 10px;
+            border-radius: 12px;
             border: 1px solid #444;
             display: flex;
+            flex-wrap: wrap;
             gap: 8px;
+            max-width: 300px;
         }
 
         .btn {
             background: #444;
-            padding: 4px 10px;
-            border-radius: 4px;
+            padding: 6px 12px;
+            border-radius: 6px;
             font-size: 0.75rem;
             color: white;
+            transition: all 0.2s;
         }
 
-        .btn:hover { background: var(--accent-color); }
+        .btn:hover { 
+            background: var(--accent-color);
+            transform: translateY(-1px);
+        }
 
-        input, textarea {
+        input, textarea, select {
             background: #111;
             color: #fff;
             border: 1px solid #555;
             width: 100%;
-            font-size: 0.7rem;
-            padding: 4px;
+            font-size: 0.75rem;
+            padding: 6px;
             border-radius: 4px;
             margin-top: 4px;
+            outline: none;
+        }
+
+        input:focus, textarea:focus {
+            border-color: var(--accent-color);
         }
     </style>
 </head>
@@ -160,20 +181,24 @@
 
     <div id="workspace">
         <div class="toolbar">
-            <span class="font-bold text-orange-500 mr-2 flex items-center text-sm">HTML5 Builder</span>
-            <button class="btn" onclick="addNode('Page')">+ Page Root</button>
-            <button class="btn" onclick="addNode('Header')">+ Header</button>
-            <button class="btn" onclick="addNode('Text')">+ Paragraph</button>
-            <button class="btn" onclick="addNode('Button')">+ Button</button>
-            <button class="btn" onclick="addNode('Image')">+ Image</button>
+            <div class="w-full font-bold text-orange-500 mb-2 flex items-center text-sm border-b border-gray-700 pb-1">
+                HTML5 Builder Node Editor
+            </div>
+            <button class="btn" onclick="addNode('Page')">Page Root</button>
+            <button class="btn" onclick="addNode('Header')">Header</button>
+            <button class="btn" onclick="addNode('Text')">Paragraph</button>
+            <button class="btn" onclick="addNode('Button')">Button</button>
+            <button class="btn" onclick="addNode('Image')">Image</button>
         </div>
         <svg id="connections"></svg>
     </div>
 
     <div id="output-window">
         <div id="preview-header">
-            <span>Live Website Preview</span>
-            <span class="text-xs text-gray-500">Auto-updating...</span>
+            <span>Website Preview</span>
+            <div class="flex gap-2">
+                <button onclick="updatePreview()" class="text-[10px] bg-blue-500 text-white px-2 py-1 rounded">Refresh</button>
+            </div>
         </div>
         <iframe id="preview-frame"></iframe>
     </div>
@@ -190,7 +215,7 @@
         let dragOffset = { x: 0, y: 0 };
         let pendingConnection = null;
 
-        function addNode(type, x = 50, y = 100) {
+        function addNode(type, x = 100, y = 100) {
             const id = 'node_' + Date.now();
             const nodeEl = document.createElement('div');
             nodeEl.className = 'node';
@@ -203,41 +228,41 @@
                 content = `
                     <div class="port-row"><div class="port input" data-port-id="${id}_content"></div><span>Body Content</span></div>
                     <div class="mt-2">
-                        <label class="text-[10px] text-gray-400">Page Title</label>
-                        <input type="text" value="My App" oninput="updatePreview()" id="${id}_title">
+                        <label class="text-[10px] text-gray-400">Website Title</label>
+                        <input type="text" value="My Project" oninput="updatePreview()" id="${id}_title">
                     </div>
                 `;
             } else if (type === 'Header') {
                 content = `
-                    <div class="port-row"><span>Heading Out</span><div class="port output" data-port-id="${id}_out"></div></div>
-                    <input type="text" value="Hello World" oninput="updatePreview()" id="${id}_text">
-                    <select class="w-full bg-[#111] text-xs mt-1 border border-[#555]" id="${id}_size" onchange="updatePreview()">
-                        <option value="h1">H1 - Large</option>
-                        <option value="h2">H2 - Medium</option>
-                        <option value="h3">H3 - Small</option>
+                    <div class="port-row"><span>Heading Link</span><div class="port output" data-port-id="${id}_out"></div></div>
+                    <input type="text" value="Welcome to My Site" oninput="updatePreview()" id="${id}_text">
+                    <select id="${id}_size" onchange="updatePreview()">
+                        <option value="h1">H1 (Large)</option>
+                        <option value="h2">H2 (Medium)</option>
+                        <option value="h3">H3 (Small)</option>
                     </select>
                 `;
             } else if (type === 'Text') {
                 content = `
-                    <div class="port-row"><span>Text Out</span><div class="port output" data-port-id="${id}_out"></div></div>
-                    <textarea oninput="updatePreview()" id="${id}_text" rows="2">Enter text here...</textarea>
+                    <div class="port-row"><span>Text Link</span><div class="port output" data-port-id="${id}_out"></div></div>
+                    <textarea oninput="updatePreview()" id="${id}_text" rows="2">This is a paragraph built with nodes!</textarea>
                 `;
             } else if (type === 'Button') {
                 content = `
-                    <div class="port-row"><span>Button Out</span><div class="port output" data-port-id="${id}_out"></div></div>
-                    <input type="text" value="Click Me" oninput="updatePreview()" id="${id}_label">
+                    <div class="port-row"><span>Button Link</span><div class="port output" data-port-id="${id}_out"></div></div>
+                    <input type="text" value="Learn More" oninput="updatePreview()" id="${id}_label">
                 `;
             } else if (type === 'Image') {
                 content = `
-                    <div class="port-row"><span>Image Out</span><div class="port output" data-port-id="${id}_out"></div></div>
-                    <input type="text" value="https://picsum.photos/200" oninput="updatePreview()" id="${id}_url">
+                    <div class="port-row"><span>Image Link</span><div class="port output" data-port-id="${id}_out"></div></div>
+                    <input type="text" value="https://picsum.photos/400/200" oninput="updatePreview()" id="${id}_url">
                 `;
             }
 
             nodeEl.innerHTML = `
                 <div class="node-header">
                     <span>${type}</span>
-                    <span class="cursor-pointer text-red-500 hover:text-white" onclick="deleteNode('${id}')">✕</span>
+                    <span class="cursor-pointer text-red-500 hover:text-white font-bold px-2" onclick="deleteNode('${id}')">✕</span>
                 </div>
                 <div class="node-content">${content}</div>
             `;
@@ -246,24 +271,30 @@
             const nodeObj = { id, type, x, y, el: nodeEl };
             nodes.push(nodeObj);
 
+            // Drag behavior
             nodeEl.addEventListener('mousedown', (e) => {
                 if (e.target.closest('.port') || e.target.closest('input') || e.target.closest('textarea') || e.target.closest('select')) return;
                 isDragging = true;
                 activeNode = nodeObj;
                 dragOffset.x = e.clientX - nodeEl.offsetLeft;
                 dragOffset.y = e.clientY - nodeEl.offsetTop;
+                nodeEl.style.zIndex = 1000;
+                // Move other nodes back
+                nodes.forEach(n => { if(n.id !== id) n.el.style.zIndex = 10; });
             });
 
+            // Port behavior
             nodeEl.querySelectorAll('.port').forEach(port => {
                 port.addEventListener('mousedown', (e) => {
                     e.stopPropagation();
                     const rect = port.getBoundingClientRect();
+                    const workspaceRect = workspace.getBoundingClientRect();
                     pendingConnection = {
                         fromPort: port.dataset.portId,
                         fromNode: id,
                         isOutput: port.classList.contains('output'),
-                        startX: rect.left + rect.width / 2,
-                        startY: rect.top + rect.height / 2
+                        startX: rect.left + rect.width / 2 - workspaceRect.left,
+                        startY: rect.top + rect.height / 2 - workspaceRect.top
                     };
                 });
             });
@@ -273,12 +304,14 @@
         function deleteNode(id) {
             nodes = nodes.filter(n => n.id !== id);
             connections = connections.filter(c => c.fromNode !== id && c.toNode !== id);
-            document.getElementById(id).remove();
+            const el = document.getElementById(id);
+            if (el) el.remove();
             drawConnections();
             updatePreview();
         }
 
         window.addEventListener('mousemove', (e) => {
+            const workspaceRect = workspace.getBoundingClientRect();
             if (isDragging && activeNode) {
                 activeNode.x = e.clientX - dragOffset.x;
                 activeNode.y = e.clientY - dragOffset.y;
@@ -290,7 +323,9 @@
                 drawConnections();
                 const line = document.createElementNS("http://www.w3.org/2000/svg", "path");
                 line.setAttribute("class", "connection-line opacity-50");
-                const d = calculateCurve(pendingConnection.startX, pendingConnection.startY, e.clientX, e.clientY);
+                const currentX = e.clientX - workspaceRect.left;
+                const currentY = e.clientY - workspaceRect.top;
+                const d = calculateCurve(pendingConnection.startX, pendingConnection.startY, currentX, currentY);
                 line.setAttribute("d", d);
                 svg.appendChild(line);
             }
@@ -308,25 +343,30 @@
                         const inNode = pendingConnection.isOutput ? toNode : pendingConnection.fromNode;
                         const inPort = pendingConnection.isOutput ? toPort : pendingConnection.fromPort;
                         
-                        // Only one connection per input port
-                        connections = connections.filter(c => c.toPort !== inPort);
-                        connections.push({ fromNode: outNode, fromPort: outPort, toNode: inNode, toPort: inPort });
+                        // Prevent connecting node to itself
+                        if (outNode !== inNode) {
+                            // Ensure one connection per input
+                            connections = connections.filter(c => c.toPort !== inPort);
+                            connections.push({ fromNode: outNode, fromPort: outPort, toNode: inNode, toPort: inPort });
+                        }
                     }
                 }
             }
-            isDragging = false; activeNode = null; pendingConnection = null;
+            isDragging = false; 
+            activeNode = null; 
+            pendingConnection = null;
             drawConnections();
             updatePreview();
         });
 
         function calculateCurve(x1, y1, x2, y2) {
-            const cp1x = x1 + Math.abs(x2 - x1) * 0.5;
-            const cp2x = x2 - Math.abs(x2 - x1) * 0.5;
-            return `M ${x1} ${y1} C ${cp1x} ${y1} ${cp2x} ${y2} ${x2} ${y2}`;
+            const dist = Math.abs(x2 - x1) * 0.5;
+            return `M ${x1} ${y1} C ${x1 + dist} ${y1} ${x2 - dist} ${y2} ${x2} ${y2}`;
         }
 
         function drawConnections() {
             svg.innerHTML = '';
+            const workspaceRect = workspace.getBoundingClientRect();
             connections.forEach(conn => {
                 const p1El = document.querySelector(`[data-port-id="${conn.fromPort}"]`);
                 const p2El = document.querySelector(`[data-port-id="${conn.toPort}"]`);
@@ -335,7 +375,10 @@
                     const r2 = p2El.getBoundingClientRect();
                     const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
                     path.setAttribute("class", "connection-line");
-                    path.setAttribute("d", calculateCurve(r1.left + 7, r1.top + 7, r2.left + 7, r2.top + 7));
+                    path.setAttribute("d", calculateCurve(
+                        r1.left + 7 - workspaceRect.left, r1.top + 7 - workspaceRect.top, 
+                        r2.left + 7 - workspaceRect.left, r2.top + 7 - workspaceRect.top
+                    ));
                     svg.appendChild(path);
                 }
             });
@@ -344,7 +387,11 @@
         function updatePreview() {
             const rootNode = nodes.find(n => n.type === 'Page');
             if (!rootNode) {
-                preview.srcdoc = "<body style='background:#eee; display:flex; justify-content:center; align-items:center; height:100vh; font-family:sans-serif;'>Add a 'Page Root' node to start</body>";
+                preview.srcdoc = `
+                    <body style="background:#f8f8f8; display:flex; flex-direction:column; justify-content:center; align-items:center; height:100vh; font-family:sans-serif; color:#666;">
+                        <div style="font-size:40px;">🏗️</div>
+                        <p>Add a <b>Page Root</b> node to start building.</p>
+                    </body>`;
                 return;
             }
 
@@ -354,39 +401,24 @@
                 const node = nodes.find(n => n.id === nodeId);
                 if (!node) return '';
 
-                let html = '';
                 if (node.type === 'Header') {
                     const tag = document.getElementById(nodeId + '_size').value;
                     const text = document.getElementById(nodeId + '_text').value;
-                    html = `<${tag}>${text}</${tag}>`;
+                    return `<${tag}>${text}</${tag}>`;
                 } else if (node.type === 'Text') {
                     const text = document.getElementById(nodeId + '_text').value;
-                    html = `<p>${text.replace(/\n/g, '<br>')}</p>`;
+                    return `<p>${text.replace(/\n/g, '<br>')}</p>`;
                 } else if (node.type === 'Button') {
                     const label = document.getElementById(nodeId + '_label').value;
-                    html = `<button style="padding:10px 20px; border-radius:5px; border:1px solid #ccc; background:#f9f9f9; cursor:pointer;">${label}</button>`;
+                    return `<button style="background:#4a90e2; color:white; border:none; padding:12px 24px; border-radius:8px; font-weight:bold; cursor:pointer; display:block; margin:10px 0;">${label}</button>`;
                 } else if (node.type === 'Image') {
                     const url = document.getElementById(nodeId + '_url').value;
-                    html = `<img src="${url}" style="max-width:100%; border-radius:10px; margin-top:10px;">`;
+                    return `<img src="${url}" style="width:100%; border-radius:12px; margin:15px 0; box-shadow:0 4px 10px rgba(0,0,0,0.1);" onerror="this.src='https://via.placeholder.com/400x200?text=Image+Not+Found'">`;
                 }
-
-                // Find what else is connected to this output to keep nesting? 
-                // In this simple engine, we find all nodes connected to inputs
-                return html;
+                return '';
             }
 
-            // Get all nodes connected to the Root Page
-            let bodyContent = '';
-            // We find all connections going INTO the root page content port
-            const rootConns = connections.filter(c => c.toPort === rootNode.id + '_content');
-            rootConns.forEach(c => {
-                bodyContent += buildHTML(c.fromNode);
-            });
-
-            // If the output of a node is connected to ANOTHER input? 
-            // For simplicity, we just look for all nodes whose outputs are connected to the Page.
-            // Let's improve the traversal to allow multiple elements:
-            const connectedToBody = connections
+            const connectedContent = connections
                 .filter(c => c.toPort === rootNode.id + '_content')
                 .map(c => buildHTML(c.fromNode))
                 .join('');
@@ -397,23 +429,45 @@
                 <head>
                     <title>${pageTitle}</title>
                     <style>
-                        body { font-family: sans-serif; padding: 40px; color: #333; line-height: 1.6; }
-                        h1 { color: #222; margin-top: 0; }
-                        button:hover { background: #eee !important; }
+                        body { 
+                            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+                            padding: 40px; 
+                            max-width: 800px;
+                            margin: 0 auto;
+                            color: #333; 
+                            line-height: 1.6; 
+                        }
+                        h1 { font-size: 2.5rem; margin-bottom: 0.5rem; }
+                        h2 { font-size: 1.8rem; border-bottom: 2px solid #eee; padding-bottom: 5px; }
+                        p { font-size: 1.1rem; color: #555; }
                     </style>
                 </head>
                 <body>
-                    ${connectedToBody || '<h1>Welcome</h1><p>Connect blocks to the Page Root to add content!</p>'}
+                    ${connectedContent || '<div style="text-align:center; margin-top:50px;"><h1 style="color:#ddd">Empty Page</h1><p>Connect element nodes to the Page Root.</p></div>'}
                 </body>
                 </html>
             `;
         }
 
+        // Auto-init
         window.onload = () => {
-            addNode('Page', 400, 100);
-            addNode('Header', 50, 50);
-            addNode('Text', 50, 250);
-            addNode('Button', 50, 450);
+            addNode('Page', 500, 150);
+            addNode('Header', 100, 50);
+            addNode('Text', 100, 300);
+            
+            // Create a default connection after a small delay to ensure DOM is ready
+            setTimeout(() => {
+                if (nodes.length >= 2) {
+                    connections.push({
+                        fromNode: nodes[1].id,
+                        fromPort: nodes[1].id + '_out',
+                        toNode: nodes[0].id,
+                        toPort: nodes[0].id + '_content'
+                    });
+                    drawConnections();
+                    updatePreview();
+                }
+            }, 100);
         };
     </script>
 </body>
